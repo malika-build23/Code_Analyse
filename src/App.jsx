@@ -134,7 +134,7 @@ export default function CodeReviewAI() {
           CodeReview<span style={{ color: "#7c3aed" }}>AI</span>
         </span>
         <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
-          <span style={{ fontSize: 11, color: "#52525b", fontFamily: "'IBM Plex Mono', monospace" }}>Powered by Claude</span>
+          <span style={{ fontSize: 11, color: "#52525b", fontFamily: "'IBM Plex Mono', monospace" }}>Build by Engineer</span>
         </div>
       </header>
  
@@ -402,9 +402,10 @@ export default function CodeReviewAI() {
         )}
  
         <div style={{ textAlign: "center", marginTop: 48, paddingTop: 24, borderTop: "1px solid #18181b" }}>
-          <p style={{ fontSize: 11, color: "#27272a", fontFamily: "'IBM Plex Mono', monospace" }}>Powered by Google Gemini · CodeReviewAI</p>
+          <p style={{ fontSize: 11, color: "#27272a", fontFamily: "'IBM Plex Mono', monospace" }}>·2026 @Project CodeReviewAI</p>
         </div>
       </main>
     </div>
   );
 }
+
