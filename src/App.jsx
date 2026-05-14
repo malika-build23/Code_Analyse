@@ -23,7 +23,6 @@ export default function CodeReviewAI() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [apiKey, setApiKey] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
   const [copiedOptimized, setCopiedOptimized] = useState(false);
   const [lineCount, setLineCount] = useState(0);
@@ -54,26 +53,20 @@ export default function CodeReviewAI() {
 
   const analyzeCode = async () => {
     if (!code.trim()) return;
-    if (!apiKey.trim()) { setError("Please enter your Anthropic API key above."); return; }
     setLoading(true);
     setError(null);
     setResult(null);
     setAnimatedScore(0);
 
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey.trim(),
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 4096,
-          system: SYSTEM_PROMPT,
-          messages: [{ role: "user", content: `Language: ${language}\n\nCode to review:\n\`\`\`${language.toLowerCase()}\n${code}\n\`\`\`` }]
+          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: [{ role: "user", parts: [{ text: `Language: ${language}\n\nCode to review:\n\`\`\`${language.toLowerCase()}\n${code}\n\`\`\`` }] }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 4096 }
         })
       });
 
@@ -83,7 +76,7 @@ export default function CodeReviewAI() {
       }
 
       const data = await response.json();
-      const text = data.content?.[0]?.text || "";
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
       const cleaned = text.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(cleaned);
       setResult(parsed);
@@ -148,6 +141,7 @@ export default function CodeReviewAI() {
         .bar-fill { transition: width 1s cubic-bezier(0.16, 1, 0.3, 1); }
         .pulse { animation: pulse 1.5s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .tag { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 11px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; }
       `}</style>
 
       {/* Header */}
@@ -175,7 +169,7 @@ export default function CodeReviewAI() {
               <div style={{ display: "flex", gap: 6 }}>
                 {["#ff5f57", "#febc2e", "#28c840"].map((c, i) => <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />)}
               </div>
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#6b6480" }}>code_input.{language.toLowerCase().replace("c++","cpp").replace("typescript","ts").replace("javascript","js").replace("python","py")}</span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#6b6480" }}>code_input.{language.toLowerCase().replace("c++", "cpp").replace("typescript", "ts").replace("javascript", "js").replace("python", "py")}</span>
               <div style={{ marginLeft: "auto", display: "flex", gap: 12, alignItems: "center" }}>
                 <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#4a3f6b" }}>{lineCount} lines · {charCount} chars</span>
                 <button onClick={() => setCode("")} style={{ background: "none", border: "none", color: "#4a3f6b", cursor: "pointer", fontSize: 12, fontFamily: "'DM Mono', monospace" }}>clear</button>
@@ -222,21 +216,8 @@ export default function CodeReviewAI() {
               ))}
             </div>
 
-            {/* API Key */}
-            <div style={{ background: "#0f0d1a", border: "1px solid #1e1a2e", borderRadius: 16, padding: 20 }}>
-              <p style={{ fontSize: 11, color: "#6b6480", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 8, fontFamily: "'DM Mono', monospace" }}>Anthropic API Key</p>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={e => setApiKey(e.target.value)}
-                placeholder="sk-ant-..."
-                style={{ width: "100%", background: "#0a0a0f", border: "1px solid #2a2040", borderRadius: 8, padding: "10px 12px", color: "#c4b5fd", fontSize: 12, fontFamily: "'DM Mono', monospace", outline: "none" }}
-              />
-              <p style={{ fontSize: 10, color: "#3a3050", marginTop: 6, lineHeight: 1.5 }}>Get yours at console.anthropic.com · never stored</p>
-            </div>
-
             {/* Analyze Button */}
-            <button className="glow-btn" onClick={analyzeCode} disabled={loading || !code.trim() || !apiKey.trim()} style={{ padding: "18px", borderRadius: 14, background: loading ? "#2a2040" : "linear-gradient(135deg, #8b5cf6, #6d28d9)", border: "none", color: "#fff", fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Syne', sans-serif", letterSpacing: "0.3px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+            <button className="glow-btn" onClick={analyzeCode} disabled={loading || !code.trim()} style={{ padding: "18px", borderRadius: 14, background: loading ? "#2a2040" : "linear-gradient(135deg, #8b5cf6, #6d28d9)", border: "none", color: "#fff", fontSize: 15, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Syne', sans-serif", letterSpacing: "0.3px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
               {loading ? (
                 <>
                   <div className="pulse" style={{ width: 8, height: 8, borderRadius: "50%", background: "#c4b5fd" }} />
@@ -275,6 +256,7 @@ export default function CodeReviewAI() {
           <div ref={resultsRef} className="fade-in">
             {/* Score Hero */}
             <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 24, background: "#0f0d1a", border: "1px solid #1e1a2e", borderRadius: 20, padding: 28, marginBottom: 20, alignItems: "center" }}>
+              {/* Ring */}
               <div style={{ position: "relative", width: 128, height: 128 }}>
                 <svg width="128" height="128" style={{ transform: "rotate(-90deg)" }}>
                   <circle cx="64" cy="64" r="54" fill="none" stroke="#1e1a2e" strokeWidth="10" />
@@ -285,6 +267,8 @@ export default function CodeReviewAI() {
                   <span style={{ fontSize: 11, color: "#6b6480", letterSpacing: "1px", fontFamily: "'DM Mono', monospace" }}>/ 100</span>
                 </div>
               </div>
+
+              {/* Summary */}
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
                   <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 28, fontWeight: 800, color: getGradeColor(result.grade) }}>{result.grade}</span>
@@ -300,6 +284,8 @@ export default function CodeReviewAI() {
                   ))}
                 </div>
               </div>
+
+              {/* Complexity */}
               <div style={{ background: "#0a0a0f", border: "1px solid #1e1a2e", borderRadius: 14, padding: "16px 20px", minWidth: 170 }}>
                 <p style={{ fontSize: 11, color: "#6b6480", textTransform: "uppercase", letterSpacing: "1px", fontFamily: "'DM Mono', monospace", marginBottom: 14 }}>Complexity</p>
                 <div style={{ marginBottom: 10 }}>
@@ -345,6 +331,7 @@ export default function CodeReviewAI() {
               ))}
             </div>
 
+            {/* Tab Content */}
             {activeTab === "bugs" && (
               <div className="fade-in" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {(result.bugs || []).length === 0 ? (
@@ -416,7 +403,7 @@ export default function CodeReviewAI() {
                     </button>
                   </div>
                 </div>
-                <pre style={{ padding: "20px", fontFamily: "'DM Mono', monospace", fontSize: 13, color: "#c4b5fd", lineHeight: "22px", whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0, maxHeight: 500, overflowY: "auto" }}>
+                <pre style={{ padding: "20px 20px 20px 20px", fontFamily: "'DM Mono', monospace", fontSize: 13, color: "#c4b5fd", lineHeight: "22px", whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0, maxHeight: 500, overflowY: "auto" }}>
                   {result.optimizedCode}
                 </pre>
               </div>
@@ -424,8 +411,9 @@ export default function CodeReviewAI() {
           </div>
         )}
 
+        {/* Footer */}
         <div style={{ textAlign: "center", marginTop: 48, paddingTop: 24, borderTop: "1px solid #1e1a2e" }}>
-          <p style={{ fontSize: 12, color: "#3a3050", fontFamily: "'DM Mono', monospace" }}>Powered by Claude Sonnet · CodeReviewAI</p>
+          <p style={{ fontSize: 12, color: "#3a3050", fontFamily: "'DM Mono', monospace" }}>Powered by Google Gemini · CodeReviewAI</p>
         </div>
       </div>
     </div>
